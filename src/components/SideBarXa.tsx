@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface XaFeature {
   properties: {
@@ -26,10 +27,12 @@ interface SidebarXaProps {
 export const SidebarXa = ({ selectedTinh }: SidebarXaProps) => {
   const [xaList, setXaList] = useState<XaFeature[]>([]);
   const [searchText, setSearchText] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!selectedTinh) return;
 
+    setLoading(true);
     fetch("/data/DiaPhan_Xa_2025.json")
       .then((res) => res.json())
       .then((geojson) => {
@@ -38,16 +41,14 @@ export const SidebarXa = ({ selectedTinh }: SidebarXaProps) => {
           .sort((a: XaFeature, b: XaFeature) => {
             const nameA = a.properties.tenXa;
             const nameB = b.properties.tenXa;
-
             const isPhuongA = nameA.includes("Phường") ? 0 : 1;
             const isPhuongB = nameB.includes("Phường") ? 0 : 1;
-
-            // Ưu tiên Phường trước, sau đó sort theo tên
             if (isPhuongA !== isPhuongB) return isPhuongA - isPhuongB;
             return nameA.localeCompare(nameB);
           });
 
         setXaList(filtered);
+        setLoading(false);
       });
   }, [selectedTinh]);
 
@@ -68,7 +69,18 @@ export const SidebarXa = ({ selectedTinh }: SidebarXaProps) => {
         onChange={(e) => setSearchText(e.target.value)}
       />
 
-      {filteredXaList.length > 0 ? (
+      {loading ? (
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex space-x-4">
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-6 w-24" />
+            </div>
+          ))}
+        </div>
+      ) : filteredXaList.length > 0 ? (
         <Table>
           <TableHeader>
             <TableRow>
