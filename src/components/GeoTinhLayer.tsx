@@ -17,13 +17,19 @@ function getRandomRGBA(alpha: number = 0.2): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export const GeoTinhLayer = ({ useMap }: { useMap: () => OLMap | null }) => {
+interface Props {
+  useMap: () => OLMap | null;
+  onTinhSelect: (tenTinh: string | null) => void;
+}
+
+export const GeoTinhLayer = ({ useMap, onTinhSelect }: Props) => {
   const map = useMap();
   const provinceColorMap = useRef<Map<string, string>>(new Map());
   const hoverInteractionRef = useRef<Select | null>(null);
   const clickInteractionRef = useRef<Select | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<Overlay | null>(null);
+  const hoveredFeatureRef = useRef<Feature<Geometry> | null>(null);
 
   useEffect(() => {
     if (!map) return;
@@ -44,21 +50,12 @@ export const GeoTinhLayer = ({ useMap }: { useMap: () => OLMap | null }) => {
       const color = provinceColorMap.current.get(code)!;
 
       return new Style({
-        stroke: new Stroke({
-          color: '#1e40af',
-          width: 1.5,
-        }),
-        fill: new Fill({
-          color,
-        }),
+        stroke: new Stroke({ color: '#1e40af', width: 1.5 }),
+        fill: new Fill({ color }),
       });
     };
 
-    const layer = new VectorLayer({
-      source: vectorSource,
-      style: styleFunction,
-    });
-
+    const layer = new VectorLayer({ source: vectorSource, style: styleFunction });
     map.addLayer(layer);
 
     // === Add popup overlay ===
@@ -91,12 +88,10 @@ export const GeoTinhLayer = ({ useMap }: { useMap: () => OLMap | null }) => {
       style: (feature: FeatureLike): Style => {
         const code = feature.get('maTinh_BNV');
         let baseColor = provinceColorMap.current.get(code || '') || 'rgba(200,200,200,0.2)';
-
         baseColor = baseColor.replace(
           /rgba\((\d+),(\d+),(\d+),([^)]+)\)/,
           (_match, r, g, b) => `rgba(${r},${g},${b},0.5)`
         );
-
         return new Style({
           stroke: new Stroke({ color: '#000', width: 2 }),
           fill: new Fill({ color: baseColor }),
@@ -105,20 +100,29 @@ export const GeoTinhLayer = ({ useMap }: { useMap: () => OLMap | null }) => {
     });
     hoverInteractionRef.current = hoverInteraction;
 
-    // Click interaction – chỉ hiện popup, không thay đổi style
+    hoverInteraction.on('select', (e) => {
+      const feature = e.selected[0] || null;
+      hoveredFeatureRef.current = feature;
+      if (!feature && overlayRef.current) overlayRef.current.setPosition(undefined);
+    });
+
+    // Click interaction
     const clickInteraction = new Select({
       condition: click,
       layers: [layer],
-      style: null, // không áp dụng style khi click
+      style: null,
     });
 
     clickInteraction.on('select', (e) => {
+      const zoom = map.getView().getZoom() ?? 0;
       const feature = e.selected[0];
-      if (feature) {
+
+      if (feature && zoom < 10) {
         const tenTinh = feature.get('tenTinh');
         const maTinh = feature.get('maTinh_BNV');
         const dienTich = feature.get('dienTich');
         const danSo = feature.get('danSo');
+        onTinhSelect(tenTinh); // 🔥 Gửi về App
 
         const coord = e.mapBrowserEvent.coordinate;
         const content = `
@@ -127,13 +131,12 @@ export const GeoTinhLayer = ({ useMap }: { useMap: () => OLMap | null }) => {
           <b>Diện tích:</b> ${dienTich} km²<br/>
           <b>Dân số:</b> ${danSo} người
         `;
-
         if (popupRef.current && overlayRef.current) {
           popupRef.current.innerHTML = content;
           overlayRef.current.setPosition(coord);
         }
       } else {
-        // clear popup
+        onTinhSelect(null);
         if (overlayRef.current) overlayRef.current.setPosition(undefined);
       }
     });
@@ -141,42 +144,29 @@ export const GeoTinhLayer = ({ useMap }: { useMap: () => OLMap | null }) => {
     clickInteractionRef.current = clickInteraction;
     map.addInteraction(clickInteraction);
 
-    // Handle zoom to toggle hover interaction
+    // Handle zoom to toggle hover
     const handleViewChange = () => {
       const zoom = map.getView().getZoom();
       if (zoom === undefined) return;
-
-      if (zoom < 10) {
-        if (!map.getInteractions().getArray().includes(hoverInteraction)) {
-          map.addInteraction(hoverInteraction);
-        }
-      } else {
-        if (map.getInteractions().getArray().includes(hoverInteraction)) {
-          map.removeInteraction(hoverInteraction);
-        }
+      const interactions = map.getInteractions().getArray();
+      if (zoom < 10 && !interactions.includes(hoverInteraction)) {
+        map.addInteraction(hoverInteraction);
+      } else if (zoom >= 10 && interactions.includes(hoverInteraction)) {
+        map.removeInteraction(hoverInteraction);
+        hoveredFeatureRef.current = null;
       }
     };
 
     map.getView().on('change:resolution', handleViewChange);
-    handleViewChange(); // initial run
+    handleViewChange();
 
     return () => {
       map.removeLayer(layer);
       map.getView().un('change:resolution', handleViewChange);
-      if (hoverInteractionRef.current) {
-        map.removeInteraction(hoverInteractionRef.current);
-      }
-      if (clickInteractionRef.current) {
-        map.removeInteraction(clickInteractionRef.current);
-      }
-      if (overlayRef.current) {
-        map.removeOverlay(overlayRef.current);
-        overlayRef.current = null;
-      }
-      if (popupRef.current) {
-        popupRef.current.remove();
-        popupRef.current = null;
-      }
+      if (hoverInteractionRef.current) map.removeInteraction(hoverInteractionRef.current);
+      if (clickInteractionRef.current) map.removeInteraction(clickInteractionRef.current);
+      if (overlayRef.current) map.removeOverlay(overlayRef.current);
+      if (popupRef.current) popupRef.current.remove();
     };
   }, [map]);
 

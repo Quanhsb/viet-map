@@ -1,43 +1,26 @@
 import { createContext, useContext, useRef, useEffect, useState } from 'react';
 import Map from 'ol/Map';
-import View from 'ol/View';
-import TileLayer from 'ol/layer/Tile';
-import XYZ from 'ol/source/XYZ';
+import { MyMap } from './components/MyMap';
 import { GeoTinhLayer } from './components/GeoTinhLayer';
-import LocateButton from './components/LocateButton'; // ✅ Import LocateButton
+import { GeoXaLayer } from './components/GeoXaLayer';
+import LocateButton from './components/LocateButton';
 import { toLonLat } from 'ol/proj';
+import { SidebarXa } from './components/SideBarXa';
 import 'ol/ol.css';
 
-const MapContext = createContext<Map | null>(null);
-const useMap = () => useContext(MapContext);
+export const MapContext = createContext<Map | null>(null);
+export const useMap = () => useContext(MapContext);
 
 function App() {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<Map | null>(null);
-  const [zoom, setZoom] = useState<number>(0);
+  const [zoom, setZoom] = useState(0);
   const [coords, setCoords] = useState<[number, number]>([0, 0]);
+  const [selectedTinh, setSelectedTinh] = useState<string | null>(null);
 
   useEffect(() => {
-    const targetElement = mapRef.current;
-    if (!targetElement) return;
-
-    const mapObject = new Map({
-      target: targetElement,
-      layers: [
-        new TileLayer({
-          source: new XYZ({
-            url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-          }),
-        }),
-      ],
-      view: new View({
-        center: [11710584.69, 2101345.02],
-        zoom: 6,
-        projection: 'EPSG:3857',
-      }),
-    });
-
-    setMap(mapObject);
+    if (!map) return;
+    const view = map.getView();
 
     const handleMove = (evt: any) => {
       const [lon, lat] = toLonLat(evt.coordinate);
@@ -45,29 +28,27 @@ function App() {
     };
 
     const handleZoom = () => {
-      const z = mapObject.getView().getZoom();
+      const z = view.getZoom();
       if (z !== undefined) setZoom(z);
     };
 
-    mapObject.on('pointermove', handleMove);
-    mapObject.on('moveend', handleZoom);
+    map.on('pointermove', handleMove);
+    map.on('moveend', handleZoom);
     handleZoom();
 
     return () => {
-      mapObject.setTarget(undefined);
-      mapObject.un('pointermove', handleMove);
-      mapObject.un('moveend', handleZoom);
+      map.un('pointermove', handleMove);
+      map.un('moveend', handleZoom);
     };
-  }, []);
+  }, [map]);
 
   return (
     <MapContext.Provider value={map}>
-      <div className="w-full h-screen relative" ref={mapRef}></div>
-
-      {map && <GeoTinhLayer useMap={useMap} />}
-      {map && <LocateButton map={map} />} {/* ✅ Thêm nút định vị */}
-
-      {/* Hiển thị thông tin tọa độ và zoom ở góc dưới trái */}
+      <MyMap mapRef={mapRef} onMapReady={setMap} />
+      {map && <GeoTinhLayer useMap={useMap} onTinhSelect={setSelectedTinh} />}
+      {map && <GeoXaLayer useMap={useMap} />}
+      {map && <LocateButton map={map} />}
+      <SidebarXa selectedTinh={selectedTinh} />
       <div className="absolute bottom-2 left-2 bg-white bg-opacity-90 text-sm px-3 py-1 rounded shadow z-10">
         <div><strong>Zoom:</strong> {zoom.toFixed(2)}</div>
         <div>
