@@ -58,7 +58,7 @@ export const GeoTinhLayer = ({ useMap, onTinhSelect }: Props) => {
     const layer = new VectorLayer({ source: vectorSource, style: styleFunction });
     map.addLayer(layer);
 
-    // === Add popup overlay ===
+    // popup
     const popupContainer = document.createElement('div');
     popupContainer.id = 'popup';
     popupContainer.style.position = 'absolute';
@@ -81,7 +81,7 @@ export const GeoTinhLayer = ({ useMap, onTinhSelect }: Props) => {
     overlayRef.current = overlay;
     map.addOverlay(overlay);
 
-    // Hover interaction
+    // hiệu ứng di chuột
     const hoverInteraction = new Select({
       condition: pointerMove,
       layers: [layer],
@@ -90,7 +90,7 @@ export const GeoTinhLayer = ({ useMap, onTinhSelect }: Props) => {
         let baseColor = provinceColorMap.current.get(code || '') || 'rgba(200,200,200,0.2)';
         baseColor = baseColor.replace(
           /rgba\((\d+),(\d+),(\d+),([^)]+)\)/,
-          (_match, r, g, b) => `rgba(${r},${g},${b},0.5)`
+          (_match, r, g, b) => `rgba(${r},${g},${b},0.25)`
         );
         return new Style({
           stroke: new Stroke({ color: '#000', width: 2 }),
@@ -106,7 +106,7 @@ export const GeoTinhLayer = ({ useMap, onTinhSelect }: Props) => {
       if (!feature && overlayRef.current) overlayRef.current.setPosition(undefined);
     });
 
-    // Click interaction
+    // hiệu ứng click chuột
     const clickInteraction = new Select({
       condition: click,
       layers: [layer],
@@ -122,7 +122,7 @@ export const GeoTinhLayer = ({ useMap, onTinhSelect }: Props) => {
         const maTinh = feature.get('maTinh_BNV');
         const dienTich = feature.get('dienTich');
         const danSo = feature.get('danSo');
-        onTinhSelect(tenTinh); // 🔥 Gửi về App
+        onTinhSelect(tenTinh); // gửi về App.tsx
 
         const coord = e.mapBrowserEvent.coordinate;
         const content = `
@@ -144,7 +144,7 @@ export const GeoTinhLayer = ({ useMap, onTinhSelect }: Props) => {
     clickInteractionRef.current = clickInteraction;
     map.addInteraction(clickInteraction);
 
-    // Handle zoom to toggle hover
+    // xử lý zoom level >10 thì ko hover nữa
     const handleViewChange = () => {
       const zoom = map.getView().getZoom();
       if (zoom === undefined) return;

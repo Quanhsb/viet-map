@@ -22,7 +22,7 @@ export const GeoXaLayer = ({ useMap }: { useMap: () => OLMap | null }) => {
       source: vectorSource,
       style: new Style({
         stroke: new Stroke({
-          color: '#22c55e',
+          color: '#FF00FF',
           width: 1.2,
         }),
       }),

@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Map as OlMap, View } from 'ol'
+import { Map as OlMap } from 'ol'
 import { fromLonLat } from 'ol/proj'
 import { Feature } from 'ol'
 import Point from 'ol/geom/Point'
 import VectorSource from 'ol/source/Vector'
 import VectorLayer from 'ol/layer/Vector'
 import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style'
+import type { Geometry } from 'ol/geom'
 
 type LocateButtonProps = {
   map: OlMap | null
@@ -30,11 +31,11 @@ export default function LocateButton({ map }: LocateButtonProps) {
         const { latitude, longitude } = position.coords
         const coords = fromLonLat([longitude, latitude])
 
-        // Zoom vào vị trí
+        // zoom vào vị trí
         map.getView().animate({ center: coords, zoom: 16, duration: 1000 })
 
-        // Tạo marker
-        const pointFeature = new Feature(new Point(coords))
+        // tạo marker mới
+        const pointFeature = new Feature<Point>(new Point(coords))
         pointFeature.setStyle(
           new Style({
             image: new CircleStyle({
@@ -45,18 +46,27 @@ export default function LocateButton({ map }: LocateButtonProps) {
           })
         )
 
-        // Thêm vào layer mới
-        const vectorSource = new VectorSource({ features: [pointFeature] })
-        const vectorLayer = new VectorLayer({ source: vectorSource })
-        vectorLayer.set('name', 'current-location')
+        // xóa layer cũ nếu có
+        const oldLayer = map
+          .getLayers()
+          .getArray()
+          .find((layer) => layer.get('name') === 'current-location')
+        if (oldLayer) {
+          map.removeLayer(oldLayer)
+        }
 
-        // Xóa layer cũ nếu có
-        map.getLayers().forEach((layer) => {
-          if (layer.get('name') === 'current-location') {
-            map.removeLayer(layer)
-          }
+        // tạo vector source + layer
+        const vectorSource = new VectorSource<Feature<Geometry>>({
+          features: [pointFeature],
         })
 
+        const vectorLayer = new VectorLayer({
+          source: vectorSource,
+        })
+
+        vectorLayer.set('name', 'current-location')
+
+        // thêm layer mới
         map.addLayer(vectorLayer)
 
         setLocating(false)

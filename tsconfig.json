@@ -16,9 +16,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "types": ["node"],
-    "baseUrl": ".",                    // ✅ thêm dòng này
+    "baseUrl": ".",                    
     "paths": {
-      "@/*": ["src/*"]                // ✅ thêm dòng này
+      "@/*": ["src/*"]                
     }
   },
   "include": ["src"]

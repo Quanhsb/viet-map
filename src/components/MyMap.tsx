@@ -14,15 +14,21 @@ export function MyMap({ mapRef, onMapReady }: MyMapProps) {
     const target = mapRef.current;
     if (!target) return;
 
+    const baseLayer = new TileLayer({
+      source: new XYZ({
+        url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+      }),
+    });
+
+    const roadLayer = new TileLayer({
+      source: new XYZ({
+        url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+      }),
+    });
+
     const map = new Map({
       target,
-      layers: [
-        new TileLayer({
-          source: new XYZ({
-            url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-          }),
-        }),
-      ],
+      layers: [baseLayer, roadLayer],
       view: new View({
         center: [11710584.69, 2101345.02],
         zoom: 6,

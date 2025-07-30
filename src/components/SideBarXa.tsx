@@ -60,7 +60,10 @@ export const SidebarXa = ({ selectedTinh }: SidebarXaProps) => {
 
   return (
     <div className="absolute top-2 right-2 bg-white p-4 shadow-md rounded w-[480px] max-h-[80vh] overflow-auto z-20">
-      <h2 className="text-lg font-bold mb-4">Xã thuộc tỉnh: {selectedTinh}</h2>
+      <h2 className="text-lg font-bold mb-1">Xã thuộc {selectedTinh}</h2>
+      <div className="text-sm text-gray-600 mb-4">
+        Tổng số xã/phường: {xaList.length.toLocaleString()}
+      </div>
 
       <Input
         placeholder="Tìm tên xã/phường..."
@@ -87,7 +90,7 @@ export const SidebarXa = ({ selectedTinh }: SidebarXaProps) => {
               <TableHead>Mã xã</TableHead>
               <TableHead>Phường/Xã</TableHead>
               <TableHead>Diện tích (km²)</TableHead>
-              <TableHead>Dân số</TableHead>
+              <TableHead>Dân số (người)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
