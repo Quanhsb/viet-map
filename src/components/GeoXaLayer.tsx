@@ -32,7 +32,7 @@ export const GeoXaLayer = ({ useMap }: { useMap: () => OLMap | null }) => {
       const zoom = map.getView().getZoom();
       if (typeof zoom !== 'number') return;
 
-      if (zoom > 10) {
+      if (zoom > 11.5) {
         if (!map.getLayers().getArray().includes(layer)) {
           map.addLayer(layer);
         }
